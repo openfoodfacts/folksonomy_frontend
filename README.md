@@ -1,10 +1,13 @@
 # folksonomy_frontend
 This is the [Folksonomy Engine](https://wiki.openfoodfacts.org/Folksonomy_Engine) front end. It is a user script for your browser, to let you add free tags to [Open Food Facts](https://world.openfoodfacts.org/)  products. Folksonomy Engine User Script (FEUS) is a kind of laboratory, to explore features and UI before they can get into Open Food Facts.
 
-Some features:
-* add new tags
-* delete tags
-* athenticate
+Main features:
+* add a new "User properties" section, in each product view, to:
+  * display product tags: eg. https://world.openfoodfacts.org/product/3760256070970/pesto-de-basilic
+  * add new tags
+  * delete tags
+  * authenticate
+* list of products for a given property (key); eg. https://world.openfoodfacts.org/key/color_Of_The_Cap
 
 It uses the [Folksonomy API](https://github.com/openfoodfacts/folksonomy_api).
 
@@ -22,7 +25,7 @@ Just click on the Raw button and your script manager will ask you if you want to
 
 # We need help
 Any kind of contribution is welcome: coding or bug/enhancement reports.
-Javascript coders: use easy to understand javascript; please aks/suggest before using a new library.
+Javascript coders: use easy to understand javascript; suggest small commits/PR; please aks/suggest before using a new library.
 
 # Changelog
 ### 2021-05-07T12:37
