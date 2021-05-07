@@ -2,7 +2,7 @@
 // @name        Folksonomy Engine user script
 // @description Add Folksonomy Engine UI to Open Food Facts web pages.
 // @namespace   openfoodfacts.org
-// @version     2021-05-07T12:37
+// @version     2021-05-07T16:13
 // @include     https://*.openfoodfacts.org/*
 // @include     https://*.openproductsfacts.org/*
 // @include     https://*.openbeautyfacts.org/*
@@ -45,7 +45,6 @@
 // * organise a place for property documentation, and link FEUS to it (the wiki?)
 
 // Priority 2:
-// * create lists of properties
 // * // @updateURL   https://github.com/openfoodfacts/power-user-script/raw/master/OpenFoodFactsPower.user.js
 
 
@@ -54,7 +53,7 @@
     'use strict';
 
     const pageType = isPageType(); // test page type
-    console.log("FEUS - Folksonomy Engine User Script - 2021-05-07T12:37 - mode: " + pageType);
+    console.log("FEUS - Folksonomy Engine User Script - 2021-05-07T16:13 - mode: " + pageType);
 
     const feAPI = "https://api.folksonomy.openfoodfacts.org";
     //const feAPI = "http://127.0.0.1:8000";
@@ -90,8 +89,9 @@
     document.documentElement.appendChild(s);
 
 
-    if (pageType === "edit"  ||  pageType === "product view"  ||
-        pageType === "saved-product page" || pageType === "key") {
+    if (pageType === "edit"               || pageType === "product view"  ||
+        pageType === "saved-product page" || pageType === "key"           ||
+        pageType === "keys") {
 
         var code = $("#barcode").html();
         console.log("FEUS - barcode: " + code);
@@ -100,6 +100,7 @@
         var addKVURL = feAPI + "/product";
         var deleteKVURL = feAPI + "/product";
         var feAPIProductsURL = feAPI + "/products";
+        var feAPIKeysURL = feAPI + "/keys";
     }
 
 
@@ -121,6 +122,12 @@
         displayProductsWithKey(key);
     }
 
+
+    if (pageType === "keys") {
+        displayAllKeys();
+    }
+
+
     /**
      * Display all the free properties created and filed by users.
      * Examples:
@@ -138,7 +145,7 @@
             '<table>' +
             '<tr>' +
             '<th> </th>' +
-            '<th class="prop_title">Property</th>' +
+            '<th class="prop_title">Property <a href="/keys">🔗</a></th>' +
             '<th class="val_title">Value</th>' +
             '</tr>' +
             '<tbody id="free_prop_body">' +
@@ -187,6 +194,7 @@
         */
         _key = _key.charAt(0).toUpperCase() + _key.slice(1);
         $("#main_column h1").before('<h2 id="key_title">Key: '+ _key +'</h2>' +
+                                    '<p>List of products containing this key. You can also find the <a href="/keys">list of all other keys</a>.</p>' +
                                     '<ul id="product_list"></ul>');
         $("#main_column p").remove(); // remove <p>Invalid address.</p>
         $("#main_column h1").remove(); // remove <h1>Error</h1>
@@ -198,6 +206,46 @@
                 $("#product_list").append('<li class="product_code">' +
                                           '<a href="/product/'+ data[index].product + '">' + data[index].product + '</a>' +
                                           '</li>');
+                index++;
+            };
+        });
+    }
+
+
+    function displayAllKeys(_owner) {
+        /* curl -X 'GET' \
+             'https://api.folksonomy.openfoodfacts.org/keys' \
+             -H 'accept: application/json'
+        */
+        //_key = _key.charAt(0).toUpperCase() + _key.slice(1);
+        // TODO: add owner filter?
+        // TODO: TABLE !!
+        $("#main_column p").remove(); // remove <p>Invalid address.</p>
+        $("#main_column h1").before('<h2 id="key_title">Keys</h2>' +
+                                    '<p>List of all keys.</p>' +
+                                    '<table id="keys_list">' +
+                                    '<tr>' +
+                                    '<th> </th>' +
+                                    '<th class="key_name">Key</th>' +
+                                    '<th class="count">Count</th>' +
+                                    '<th class="values">Values</th>' +
+                                    '</tr>' +
+                                    '<tbody id="free_prop_body">' +
+                                    '' +
+                                    '</tbody>' +
+                                    '</table>');
+        $("#main_column h1").remove(); // remove <h1>Error</h1>
+        console.log("FEUS - displayAllKeys(_owner) - GET " + feAPIKeysURL);
+        $.getJSON(feAPIKeysURL, function(data) {
+            console.log("FEUS - displayAllKeys() - " + JSON.stringify(data));
+            var index = 0;
+            while (index < data.length) {
+                $("#keys_list").append('<tr class="key">' +
+                                       '<td> </td>' +
+                                       '<td><a href="/key/'+ data[index].k + '">' + data[index].k + '</a></td>' +
+                                       '<td>' + data[index].count + '</td>' +
+                                       '<td>' + data[index].values + '</td>' +
+                                       '</tr>');
                 index++;
             };
         });
@@ -356,6 +404,10 @@
         // Detect API page. Example: https://world.openfoodfacts.org/key/test
         let regex_key = RegExp('key/');
         if(regex_key.test(document.URL) === true) return "key";
+
+        // Detect API page. Example: https://world.openfoodfacts.org/key/test
+        let regex_keys = RegExp('keys$');
+        if(regex_keys.test(document.URL) === true) return "keys";
 
         // Detect producers platform
         var regex_pro = RegExp('\.pro\.open');
