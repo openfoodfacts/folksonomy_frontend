@@ -2,7 +2,7 @@
 // @name        Folksonomy Engine user script
 // @description Add Folksonomy Engine UI to Open Food Facts web pages.
 // @namespace   openfoodfacts.org
-// @version     2021-05-05T09:33
+// @version     2021-05-07T12:37
 // @include     https://*.openfoodfacts.org/*
 // @include     https://*.openproductsfacts.org/*
 // @include     https://*.openbeautyfacts.org/*
@@ -40,7 +40,6 @@
 // TODO
 
 // Priority 1:
-// * publish a alpha version allowing to add and delete property-value pairs (github repo?)
 // * add edit feature
 // * create lists of products with a chosen property/value pair; eg. list of all products containing: "toBeReviewed":"quickly"
 // * organise a place for property documentation, and link FEUS to it (the wiki?)
@@ -55,7 +54,7 @@
     'use strict';
 
     const pageType = isPageType(); // test page type
-    console.log("FEUS - Folksonomy Engine User Script - 2021-05-05T09:33 - mode: " + pageType);
+    console.log("FEUS - Folksonomy Engine User Script - 2021-05-07T12:37 - mode: " + pageType);
 
     const feAPI = "https://api.folksonomy.openfoodfacts.org";
     //const feAPI = "http://127.0.0.1:8000";
@@ -92,7 +91,7 @@
 
 
     if (pageType === "edit"  ||  pageType === "product view"  ||
-        pageType === "saved-product page") {
+        pageType === "saved-product page" || pageType === "key") {
 
         var code = $("#barcode").html();
         console.log("FEUS - barcode: " + code);
@@ -100,6 +99,7 @@
         var editURL = feAPI + "/product";
         var addKVURL = feAPI + "/product";
         var deleteKVURL = feAPI + "/product";
+        var feAPIProductsURL = feAPI + "/products";
     }
 
 
@@ -112,6 +112,14 @@
         displayFolksonomyForm();
     }
 
+    if (pageType === "key") {
+        let results = new RegExp('/key/' + '(.*)').exec(window.location.href);
+        if (results === null) {
+            return null;
+        }
+        let key = results[1];
+        displayProductsWithKey(key);
+    }
 
     /**
      * Display all the free properties created and filed by users.
@@ -161,13 +169,37 @@
                 // <input type="text" name="lastName" value="Blow">
                 $("#free_prop_body").prepend('<tr>' +
                                              '<td class="version" data-version="'+data[index].version+'"> </td>' +
-                                             '<td class="property">' + data[index].k + '</td>' +
+                                             '<td class="property"><a href="/key/' + data[index].k + '">' + data[index].k + '</a></td>' +
                                              '<td class="value">'    + data[index].v + '</td>' +
                                              '<td><span class="button tiny">Edit</span> <span class="button tiny fe_del_kv">Delete</span></td>' +
                                              '</tr>');
                 index++;
             };
             $(".fe_del_kv").click( function() { isWellLoggedIn() ? delKeyValue($(this)) : loginProcess(); } );
+        });
+    }
+
+
+    function displayProductsWithKey(_key) {
+        /* curl -X 'GET' \
+            'https://api.folksonomy.openfoodfacts.org/products?k=Test' \
+            -H 'accept: application/json'
+        */
+        _key = _key.charAt(0).toUpperCase() + _key.slice(1);
+        $("#main_column h1").before('<h2 id="key_title">Key: '+ _key +'</h2>' +
+                                    '<ul id="product_list"></ul>');
+        $("#main_column p").remove(); // remove <p>Invalid address.</p>
+        $("#main_column h1").remove(); // remove <h1>Error</h1>
+        console.log("FEUS - displayProductsWithKey(_key) - GET " + feAPIProductsURL + "?k=" + _key);
+        $.getJSON(feAPIProductsURL + "?k=" + _key, function(data) {
+            console.log("FEUS - displayProductsWithKey() - " + JSON.stringify(data));
+            var index = 0;
+            while (index < data.length) {
+                $("#product_list").append('<li class="product_code">' +
+                                          '<a href="/product/'+ data[index].product + '">' + data[index].product + '</a>' +
+                                          '</li>');
+                index++;
+            };
         });
     }
 
@@ -318,8 +350,12 @@
      */
     function isPageType() {
         // Detect API page. Example: https://world.openfoodfacts.org/api/v0/product/3599741003380.json
-        var regex_api = RegExp('api/v0/');
+        let regex_api = RegExp('api/v0/');
         if(regex_api.test(document.URL) === true) return "api";
+
+        // Detect API page. Example: https://world.openfoodfacts.org/key/test
+        let regex_key = RegExp('key/');
+        if(regex_key.test(document.URL) === true) return "key";
 
         // Detect producers platform
         var regex_pro = RegExp('\.pro\.open');
