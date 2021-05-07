@@ -25,5 +25,7 @@ Any kind of contribution is welcome: coding or bug/enhancement reports.
 Javascript coders: use easy to understand javascript; please aks/suggest before using a new library.
 
 # Changelog
+### 2021-05-07T12:37
+* Add link to properties (keys) + list of products for each key
 ### 2021-05-05T09:33
 * initial publication on this current Github repo
