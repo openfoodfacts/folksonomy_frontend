@@ -2,7 +2,7 @@
 // @name        Folksonomy Engine user script
 // @description Add Folksonomy Engine UI to Open Food Facts web pages.
 // @namespace   openfoodfacts.org
-// @version     2021-05-07T16:13
+// @version     2021-05-10T13:18
 // @include     https://*.openfoodfacts.org/*
 // @include     https://*.openproductsfacts.org/*
 // @include     https://*.openbeautyfacts.org/*
@@ -53,7 +53,7 @@
     'use strict';
 
     const pageType = isPageType(); // test page type
-    console.log("FEUS - Folksonomy Engine User Script - 2021-05-07T16:13 - mode: " + pageType);
+    console.log("FEUS - Folksonomy Engine User Script - 2021-05-10T13:18 - mode: " + pageType);
 
     const feAPI = "https://api.folksonomy.openfoodfacts.org";
     //const feAPI = "http://127.0.0.1:8000";
@@ -77,7 +77,29 @@
 @import url("https://netdna.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css");
 
 .feus {
+  background-color: #edf2f8;
+  margin-bottom: 1rem;
+}
 
+#free_prop_body *, #fe_new_row * {
+  margin-bottom: 0.1rem !important;
+}
+
+.feus h2 {
+  border-bottom: 1px solid #1eff3a;
+}
+
+#free_properties_form table {
+  background: none;
+}
+
+#free_properties_form table tr td {
+  padding: .4rem .4rem;
+  vertical-align: middle;
+}
+
+#fe_new_row * {
+  vertical-align: top !important;
 }
 
 
@@ -136,11 +158,13 @@
      * @returns none
      */
     function displayFolksonomyKeyValues() {
-        $(".details").before(
-            '<div id="free_properties_1" style="background-color: #f3e69d">' +
-            '<h2>User properties</h2>' +
+        //$(".details").before(
+        $("div[itemtype='https://schema.org/Product']").append(
+            '<!-- ---- Folksonomy Engine ----- -->' +
+            '<div id="free_properties_1" class="feus">' +
+            '<h2>User properties (<span data-tooltip aria-haspopup="true" class="has-tip" data-position="top" data-alignment="left" title="Be aware the data model might be modified. Use at your own risk.">beta</span>)</h2>' +
             '<p id="fe_login_info"></p>' +
-            '<p>This properties are created and filed by users for any kind of usages.</p>' +
+            '<p>This properties are created and filed by users for any kind of usages. Be aware the data model might be modified. Use at your own risk.</p>' +
             '<form id="free_properties_form">' +
             '<table>' +
             '<tr>' +
@@ -155,19 +179,35 @@
             //'<button class="btn" hx-get="/contact/1">Cancel</button>' +
             '<tr id="fe_new_row">' +
             '<td><input type="hidden" name="owner"> </td>' +
-            '<td><input id="fe_form_new_property" name="property"></input></td>' +
+            '<td><input id="fe_form_new_property" name="property"></input><small id="fe_prop_err" style="visibility: hidden;">Can countain only minus letters, numbers, "_", and ":"</small></td>' +
             '<td><input id="fe_form_new_value" name="value"></input></td>' +
             '<td><span id="new_kv_button" class="button tiny round">Submit</span></td>' +
             '</tr>' +
             '</table>' +
             '</form>' +
-            '</div>');
+            '</div>' +
+            '<!-- ----- /Folksonomy Engine ----- -->');
+        $("#fe_form_new_property").on("keyup", function() {
+            const kControl = /^[a-z0-9_]+(\:[a-z0-9_]+)*$/;
+            if (kControl.test($("#fe_form_new_property").val()) === false) {
+                console.log("k syntax is bad!");
+                $("#fe_prop_err").css("visibility", "visible");
+            }
+            else {
+                $("#fe_prop_err").css("visibility", "hidden");
+            }
+        });
+
         const newKV = document.getElementById('new_kv_button');
         newKV.onclick = function() { isWellLoggedIn() ?
             addKV(code, $("#fe_form_new_property").val(), $("#fe_form_new_value").val(), ""):
             loginProcess(); };
 
         $.getJSON(feAPIProductURL, function(data) {
+            if (data === null) {
+                console.log("FEUS - displayFolksonomyKeyValues() - No data");
+                return;
+            }
             console.log("FEUS - displayFolksonomyKeyValues() - " + JSON.stringify(data));
             var index = 0;
             while (index < data.length) {
@@ -189,10 +229,9 @@
 
     function displayProductsWithKey(_key) {
         /* curl -X 'GET' \
-            'https://api.folksonomy.openfoodfacts.org/products?k=Test' \
+            'https://api.folksonomy.openfoodfacts.org/products?k=test' \
             -H 'accept: application/json'
         */
-        _key = _key.charAt(0).toUpperCase() + _key.slice(1);
         $("#main_column h1").before('<h2 id="key_title">Key: '+ _key +'</h2>' +
                                     '<p>List of products containing this key. You can also find the <a href="/keys">list of all other keys</a>.</p>' +
                                     '<ul id="product_list"></ul>');
@@ -426,6 +465,8 @@
 
         // Detect page containing a list of products (home page, search results...)
         if ($("body").hasClass("list_of_products_page")) return "list";
+        // Hack for Open Products Facts, Open Beauty Facts, etc.
+        if ($(".products")[0]) return "list";
 
         // Detect search form
         var regex_search = RegExp('cgi/search.pl$');
@@ -440,6 +481,9 @@
 
         // Finally, it's a product view
         if ($("body").hasClass("product_page")) return "product view";
+
+        // Hack for Open Products Facts, Open Beauty Facts...
+        if($("body").attr("typeof") === "food:foodProduct") return "product view";
     }
 
 
@@ -467,7 +511,7 @@
             const password = $('[name="password"]').val();
             console.log("FEUS - loginProcess - username: " + username + " - password: " + password);
             getCredentials(username, password, function() {
-                console.log("FEUS - loginProcess - callback");
+                console.log("FEUS - loginProcess() - callback");
                 if (isWellLoggedIn() == true) togglePopupInfo(loginWindow);
                 else return;
             });
@@ -504,7 +548,7 @@
     }
 
 
-        // Show pop-up
+    // Show pop-up
     function showPopupInfo(message) {
         console.log("showPopupInfo(message) > "+$("#popup-info"));
         // Inspiration: http://christianelagace.com
