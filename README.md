@@ -29,6 +29,12 @@ Any kind of contribution is welcome: coding or bug/enhancement reports.
 Javascript coders: use easy to understand javascript; suggest small commits/PR; please aks/suggest before using a new library.
 
 # Changelog
+### 2021-05-10T13:18
+* Control prorperties' names (`^[a-z0-9_]+(\:[a-z0-9_]+)*$`)
+* Beta alert
+* Compatible with Open Products Facts, Open Beauty Facts, etc.
+* Styling
+* Small bugs fixed
 ### 2021-05-07T16:13
 * Add a table of all keys (with stats); eg. https://world.openfoodfacts.org/keys
 ### 2021-05-07T12:37
