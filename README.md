@@ -12,6 +12,9 @@ Main features (you have to install first to see it live):
 
 It uses the [Folksonomy API](https://github.com/openfoodfacts/folksonomy_api).
 
+![Luminosity property for a lightbulb](https://user-images.githubusercontent.com/1689815/117824899-23670480-b26f-11eb-81bc-430f0ff1831d.png)
+
+
 # Install
 To run userscripts it's best to have a script manager installed. Userscript managers are available as browser extensions:
 
