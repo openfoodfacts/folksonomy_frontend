@@ -2,7 +2,7 @@
 // @name        Folksonomy Engine user script
 // @description Add Folksonomy Engine UI to Open Food Facts web pages.
 // @namespace   openfoodfacts.org
-// @version     2021-05-10T13:18
+// @version     2021-05-17T09:18
 // @include     https://*.openfoodfacts.org/*
 // @include     https://*.openproductsfacts.org/*
 // @include     https://*.openbeautyfacts.org/*
@@ -53,11 +53,11 @@
     'use strict';
 
     const pageType = isPageType(); // test page type
-    console.log("FEUS - Folksonomy Engine User Script - 2021-05-10T13:18 - mode: " + pageType);
+    console.log("FEUS - Folksonomy Engine User Script - 2021-05-17T09:18 - mode: " + pageType);
 
     const feAPI = "https://api.folksonomy.openfoodfacts.org";
     //const feAPI = "http://127.0.0.1:8000";
-    var bearer = "charlesnepote__U3bc56413-5254-4530-b9bd-febb3fc46a6f"; // local tests
+    //var bearer = "charlesnepote__U3bc56413-5254-4530-b9bd-febb3fc46a6f"; // local tests
     var authrenewal = 1 * 1 * 5 * 60 * 1000; console.log("authrenewal: " + authrenewal); // days * hours * minutes * seconds * ms
     var authHeader, loginWindow;
     //var myHeaders = new Headers();
@@ -136,12 +136,14 @@
     }
 
     if (pageType === "key") {
-        let results = new RegExp('/key/' + '(.*)').exec(window.location.href);
+        // detect /key/test or /key/test/value/test_value
+        let results = new RegExp('/key/([^/]*)(/value/)?(.*)').exec(window.location.href);
         if (results === null) {
             return null;
         }
         let key = results[1];
-        displayProductsWithKey(key);
+        let value = results[3];
+        displayProductsWithKey(key, value);
     }
 
 
@@ -216,8 +218,8 @@
                 // <input type="text" name="lastName" value="Blow">
                 $("#free_prop_body").prepend('<tr>' +
                                              '<td class="version" data-version="'+data[index].version+'"> </td>' +
-                                             '<td class="property"><a href="/key/' + data[index].k + '">' + data[index].k + '</a></td>' +
-                                             '<td class="value">'    + data[index].v + '</td>' +
+                                             '<td class="property"><a href="/key/' + data[index].k + '">'                         + data[index].k + '</a></td>' +
+                                             '<td class="value"><a href="/key/' + data[index].k + '/value/' + data[index].v +'">' + data[index].v + '</a></td>' +
                                              '<td><span class="button tiny">Edit</span> <span class="button tiny fe_del_kv">Delete</span></td>' +
                                              '</tr>');
                 index++;
@@ -227,18 +229,18 @@
     }
 
 
-    function displayProductsWithKey(_key) {
+    function displayProductsWithKey(_key, _value) {
         /* curl -X 'GET' \
-            'https://api.folksonomy.openfoodfacts.org/products?k=test' \
+            'https://api.folksonomy.openfoodfacts.org/products?k=test&v=test' \
             -H 'accept: application/json'
         */
-        $("#main_column h1").before('<h2 id="key_title">Key: '+ _key +'</h2>' +
+        $("#main_column h1").before('<h2 id="key_title">Key: '+ _key + (_value ? ": "+ _value : '') + '</h2>' +
                                     '<p>List of products containing this key. You can also find the <a href="/keys">list of all other keys</a>.</p>' +
                                     '<ul id="product_list"></ul>');
         $("#main_column p").remove(); // remove <p>Invalid address.</p>
         $("#main_column h1").remove(); // remove <h1>Error</h1>
-        console.log("FEUS - displayProductsWithKey(_key) - GET " + feAPIProductsURL + "?k=" + _key);
-        $.getJSON(feAPIProductsURL + "?k=" + _key, function(data) {
+        console.log("FEUS - displayProductsWithKey(_key) - GET " + feAPIProductsURL + "?k=" + _key + (_value ? "&v="+ _value : ''));
+        $.getJSON(feAPIProductsURL + "?k=" + _key + (_value ? "&v="+ _value : ''), function(data) {
             console.log("FEUS - displayProductsWithKey() - " + JSON.stringify(data));
             var index = 0;
             while (index < data.length) {
@@ -355,7 +357,6 @@
             .then(resp => {
             var data = resp.data //
             console.log(JSON.stringify(data));
-
         })
             .catch(err => {
             console.log('FEUS - addKV() - ERROR. Something went wrong:' + err);
@@ -440,7 +441,9 @@
         let regex_api = RegExp('api/v0/');
         if(regex_api.test(document.URL) === true) return "api";
 
-        // Detect API page. Example: https://world.openfoodfacts.org/key/test
+        // Detect API page. Examples:
+        // * https://world.openfoodfacts.org/key/test
+        // * https://world.openfoodfacts.org/key/test/value/test
         let regex_key = RegExp('key/');
         if(regex_key.test(document.URL) === true) return "key";
 
