@@ -2,7 +2,7 @@
 // @name        Folksonomy Engine user script
 // @description Add Folksonomy Engine UI to Open Food Facts web pages.
 // @namespace   openfoodfacts.org
-// @version     2021-05-17T09:18
+// @version     2021-05-19T21:14
 // @include     https://*.openfoodfacts.org/*
 // @include     https://*.openproductsfacts.org/*
 // @include     https://*.openbeautyfacts.org/*
@@ -23,6 +23,7 @@
 // @grant       GM_getResourceText
 // @require     http://code.jquery.com/jquery-latest.min.js
 // @require     http://code.jquery.com/ui/1.12.1/jquery-ui.min.js
+// @require     https://static.openfoodfacts.org/js/dist/jquery.cookie.js
 // @author      charles@openfoodfacts.org
 // ==/UserScript==
 /* eslint-env jquery */
@@ -53,12 +54,13 @@
     'use strict';
 
     const pageType = isPageType(); // test page type
-    console.log("FEUS - Folksonomy Engine User Script - 2021-05-17T09:18 - mode: " + pageType);
+    console.log("FEUS - Folksonomy Engine User Script - 2021-05-19T21:14 - mode: " + pageType);
 
     const feAPI = "https://api.folksonomy.openfoodfacts.org";
     //const feAPI = "http://127.0.0.1:8000";
-    //var bearer = "charlesnepote__U3bc56413-5254-4530-b9bd-febb3fc46a6f"; // local tests
-    var authrenewal = 1 * 1 * 5 * 60 * 1000; console.log("authrenewal: " + authrenewal); // days * hours * minutes * seconds * ms
+    var bearer;
+    //bearer = "charlesnepote__U3bc56413-5254-4530-b9bd-febb3fc46a6f"; // local tests
+    var authrenewal = 1 * 5 * 60 * 60 * 1000; console.log("authrenewal: " + authrenewal); // days * hours * minutes * seconds * ms
     var authHeader, loginWindow;
     //var myHeaders = new Headers();
 
@@ -93,7 +95,7 @@
   background: none;
 }
 
-#free_properties_form table tr td {
+#free_properties_form table tr * {
   padding: .4rem .4rem;
   vertical-align: middle;
 }
@@ -123,6 +125,7 @@
         var deleteKVURL = feAPI + "/product";
         var feAPIProductsURL = feAPI + "/products";
         var feAPIKeysURL = feAPI + "/keys";
+        var feUpdateKVURL = feAPI + "/product";
     }
 
 
@@ -181,7 +184,7 @@
             //'<button class="btn" hx-get="/contact/1">Cancel</button>' +
             '<tr id="fe_new_row">' +
             '<td><input type="hidden" name="owner"> </td>' +
-            '<td><input id="fe_form_new_property" name="property"></input><small id="fe_prop_err" style="visibility: hidden;">Can countain only minus letters, numbers, "_", and ":"</small></td>' +
+            '<td><input id="fe_form_new_property" name="property" class="text tagify-me" value="" lang="en" data-autocomplete="https://world.openfoodfacts.org/cgi/suggest.pl?tagtype=labels&" ></input><small id="fe_prop_err" style="visibility: hidden;">Can countain only minus letters, numbers, "_", and ":"</small></td>' +
             '<td><input id="fe_form_new_value" name="value"></input></td>' +
             '<td><span id="new_kv_button" class="button tiny round">Submit</span></td>' +
             '</tr>' +
@@ -189,8 +192,10 @@
             '</form>' +
             '</div>' +
             '<!-- ----- /Folksonomy Engine ----- -->');
+
+        // Control new property entry
         $("#fe_form_new_property").on("keyup", function() {
-            const kControl = /^[a-z0-9_]+(\:[a-z0-9_]+)*$/;
+            const kControl = /^[a-z0-9_]+(\:[a-z0-9_]+)*$/; // a property is made of minus letters + numbers + _ and :
             if (kControl.test($("#fe_form_new_property").val()) === false) {
                 console.log("k syntax is bad!");
                 $("#fe_prop_err").css("visibility", "visible");
@@ -200,11 +205,14 @@
             }
         });
 
-        const newKV = document.getElementById('new_kv_button');
-        newKV.onclick = function() { isWellLoggedIn() ?
+        // New property (key) / value submit
+        $('#new_kv_button').on("click", function() {
+            isWellLoggedIn() ?
             addKV(code, $("#fe_form_new_property").val(), $("#fe_form_new_value").val(), ""):
-            loginProcess(); };
+            loginProcess();
+        });
 
+        // Get all property/value pairs and display it
         $.getJSON(feAPIProductURL, function(data) {
             if (data === null) {
                 console.log("FEUS - displayFolksonomyKeyValues() - No data");
@@ -220,11 +228,16 @@
                                              '<td class="version" data-version="'+data[index].version+'"> </td>' +
                                              '<td class="property"><a href="/key/' + data[index].k + '">'                         + data[index].k + '</a></td>' +
                                              '<td class="value"><a href="/key/' + data[index].k + '/value/' + data[index].v +'">' + data[index].v + '</a></td>' +
-                                             '<td><span class="button tiny">Edit</span> <span class="button tiny fe_del_kv">Delete</span></td>' +
+                                             '<td>'+
+                                             '<span class="button tiny fe_save_kv" style="display: none">save</span> '+
+                                             '<span class="button tiny fe_edit_kv">Edit</span> '+
+                                             '<span class="button tiny fe_del_kv">Delete</span>'+
+                                             '</td>' +
                                              '</tr>');
                 index++;
             };
             $(".fe_del_kv").click( function() { isWellLoggedIn() ? delKeyValue($(this)) : loginProcess(); } );
+            $(".fe_edit_kv").click( function() { isWellLoggedIn() ? editKeyValue($(this)) : loginProcess(); } );
         });
     }
 
@@ -312,10 +325,9 @@
                 //'Content-Type':'application/json',
             }),
         })
-            //.then(payload => payload.json())
-            .then(resp => {
-            var data = resp.data //
-            console.log("FEUS - delKeyValue() - data: " + data);
+             .then(resp => {
+            //console.log("FEUS - delKeyValue() - resp: ", resp);
+            console.log("FEUS - delKeyValue() - resp.status: ", resp.status, ", ", resp.statusText);
             if (resp.ok) {
                 // if success or delete the row
                 console.log("FEUS - delKeyValue() - remove row");
@@ -340,7 +352,14 @@
         //                "v": "test1",
         //                "owner": "charlesnepote"
         //              }'
-        console.log("FEUS - addKV() - bearer: " + bearer);
+        console.log("FEUS - "+
+                    "curl -X 'POST' \\\n" +
+                    "        '" + addKVURL + "' \\\n" +
+                    "        -H 'accept; application/json' \\\n" +
+                    "        -H 'Authorization: Bearer " + bearer + "' \\\n" +
+                    "        -H 'Content-Type: application/json' \\\n" +
+                    "        -d '{ \"product\": \"" + _code + "\", \"k\": \"" + _k + "\", \"v\": \"" + _v + "\" }'");
+        let resStatus = 0;
         fetch(addKVURL,{
             method: 'POST',
             //mode: 'no-cors',         // no!
@@ -349,22 +368,74 @@
             headers: new Headers({
                 'Accept': 'application/json',
                 'Authorization': 'Bearer ' + bearer,
-                'Content-Type':'application/json',
+                'Content-Type': 'application/json'
             }),
             body: '{"product": "' + _code + '", "k": "' + _k + '", "v": "' +_v + '"}'
         })
-            .then(payload => payload.json())
-            .then(resp => {
-            var data = resp.data //
+            .then(res => {
+            resStatus = res.status;
+            if (res.status == 200) {
+                // update UI
+                // 1. Add a new row to the table
+                $("#free_prop_body").append('<tr>'+
+                                            '<td class="version" data-version="1"></td>'+
+                                            '<td class="property"><a href="/key/' + _k + '">' + _k + '</a></td>'+
+                                            '<td class="value"><a href="/key/' + _k + '/' + _v + '">' + _v + '</a></td>'+
+                                            '<td>'+
+                                            '<span class="button tiny fe_save_kv" style="display: none">save</span> '+
+                                            '<span class="button tiny fe_edit_kv">Edit</span> '+
+                                            '<span class="button tiny fe_del_kv">Delete</span>'+
+                                            '</td>'+
+                                            '</tr>');
+                $(".fe_del_kv").click( function() { isWellLoggedIn() ? delKeyValue($(this)) : loginProcess(); } );
+                $(".fe_edit_kv").click( function() { isWellLoggedIn() ? editKeyValue($(this)) : loginProcess(); } );
+                // 2. clear the form
+                $("#fe_form_new_property").val("");
+                $("#fe_form_new_value").val("");
+                return;
+            } else {
+                console.log(res);
+                throw Error(res.statusText+res.status);
+            }
+            return res.json();
+            })
+            .then(res => {
+            // When API answers an 422 error, the message is included in a {detail: {msg: "xxx"}} object
+            // When API answers a 200, the message is "ok"
+            var data = res.data ? res.data : res.detail.msg;
             console.log(JSON.stringify(data));
         })
-            .catch(err => {
-            console.log('FEUS - addKV() - ERROR. Something went wrong:' + err);
+            .catch(err => { // network errors like 500
+            console.log('FEUS - addKV() - ERROR. Something went wrong: ' +
+                        resStatus +
+                        err);
         });
     }
 
 
-    function editKV(_code, _key, _value) {
+    function editKeyValue(_this) {
+        // UI: create input field and replace "edit" button by "save" button
+        console.log("FEUS - editKeyValue() - start");
+        let _key = $(_this).parent().parent().children(".property").text();
+        let _oldValue = $(_this).parent().parent().children(".value").text();
+        let _version = $(_this).parent().parent().children(".version").data("version");
+
+        // build UI: make value editable
+        $(_this).parent().parent().children(".value").html('<input class="fe_form_value" type="text" maxlength="255" name="value" value="'+_oldValue+'"  autofocus required />');
+        //$(_this).parent().parent().children(".value").text('<input class="fe_form_value" type="text" maxlength="255" name="value" autofocus required>'+_value+'</input>');
+        // replace [Edit] by [Save]
+        $(_this).hide();
+        $(_this).parent().children(".fe_save_kv").show();
+        console.log($(_this).parent().parent().find(".fe_form_value"));
+
+        // call modifyKV if save button
+        // TODO: convert <input> into <td>
+        $(".fe_save_kv").click( function() { isWellLoggedIn() ? updateKeyValue(code, _key, $(_this).parent().parent().find(".fe_form_value").val(), "", _version+1) : loginProcess(); } );
+        return;
+    }
+
+
+    function updateKeyValue(_code, _k, _v, _owner, _version) {
         // {
         //   "product": "string",
         //   "k": "string",
@@ -375,10 +446,65 @@
         //   "last_edit": "2021-05-06T07:50:53.258Z",
         //   "comment": ""
         // }
-
-        // UI: create input field and replace "edit" button by "save" button
+        // curl -X 'PUT' \
+        //         'https://api.folksonomy.openfoodfacts.org/product' \
+        //          -H 'accept: application/json' \
+        //          -H 'Authorization: Bearer charlesnepote__U68ee7c02-20ff-42ab-a5a7-9436df6d5300' \
+        //          -H 'Content-Type: application/json' \
+        //          -d '{
+        //                "product": "3760256070970",
+        //                "k": "test",
+        //                "v": "test1"
+        //              }'
+        console.log("FEUS - "+
+                    "curl -X 'PUT' \\\n" +
+                    "        '" + feUpdateKVURL + "' \\\n" +
+                    "        -H 'accept; application/json' \\\n" +
+                    "        -H 'Authorization: Bearer " + bearer + "' \\\n" +
+                    "        -H 'Content-Type: application/json' \\\n" +
+                    "        -d '{ \"product\": \"" + _code + "\", \"k\": \"" + _k + "\", \"v\": \"" + _v + "\", \"version\": " + _version + " }'");
+        let resStatus = 0;
+        fetch(feUpdateKVURL,{
+            method: 'PUT',
+            headers: new Headers({
+                'Accept': 'application/json',
+                'Authorization': 'Bearer ' + bearer,
+                'Content-Type':'application/json',
+            }),
+            body: '{"product": "' + _code + '", "k": "' + _k + '", "v": "' +_v + '", "version": "' + _version + '"}'
+        })
+            .then(res => {
+              resStatus = res.status;
+            if (res.status >= 200 && res.status <= 299) {
+                return res.json();
+            } else {
+                console.log(res);
+                throw Error(res.statusText+res.status);
+            }
+            return res.json();
+        })
+            .then(resp => {
+            if (resStatus == 500) {
+                console.log("FEUS - 500 error");
+            }
+            if (resStatus == 200) {
+                // TODO: put this UI stuf out of this function
+                // convert <input> into <span>
+                //$(".fe_form")
+                console.log("FEUS - resp: ", resp, " - status: ", resStatus);
+            }
+            else {
+                let data = resp.data //
+                console.log(JSON.stringify(data));
+                console.log("FEUS - " + resp + resStatus);
+            }
+        })
+            .catch(err => { // network errors like 500
+            console.log('FEUS - updateKeyValue() - ERROR. Something went wrong: ' +
+                        resStatus +
+                        err);
+        });
     }
-
 
 
     /**
@@ -395,7 +521,7 @@
             '<p>This properties are created and filed by users for any kind of usages.</p>' +
             '<div id="product_free_properties" class="fieldset">' +
             '</div>' +
-            '</div>')
+            '</div>');
 
         $.getJSON(feAPIProductURL, function(data) {
             console.log("FEUS - displayFolksonomyForm() - URL: " + feAPIProductURL);
@@ -491,6 +617,14 @@
 
 
     function loginProcess() {
+        // Firstly try to athenticate by the OFF cookie
+        var cookie = $.cookie('session') ? $.cookie('session') : "";
+        if (cookie) {
+            getCredentialsFromCookie(cookie);
+            return;
+        }
+
+        // Else display a form
         loginWindow =
             '<div id="fe_login_dialog" title="Dialog Form">' +
             '<form name="login_form">' +
@@ -503,7 +637,7 @@
             '<div id="login_result"></div>' +
             '</div>';
         showPopupInfo(loginWindow); // open a new window
-        if (getConnectedUserID()) $('[name="password"]').focus();
+        if (getConnectedUserID()) $('[name="password"]').focus(); // focus on password field if user is known
 
         const form = document.forms['login_form'];
         console.log(form);
@@ -512,10 +646,10 @@
             e.preventDefault();  // Do not submit the form
             const username = $('[name="username"]').val();
             const password = $('[name="password"]').val();
-            console.log("FEUS - loginProcess - username: " + username + " - password: " + password);
+            console.log("FEUS - loginProcess - username: " + username);
             getCredentials(username, password, function() {
                 console.log("FEUS - loginProcess() - callback");
-                if (isWellLoggedIn() == true) togglePopupInfo(loginWindow);
+                if (isWellLoggedIn() === true) togglePopupInfo(loginWindow);
                 else return;
             });
         });
@@ -523,9 +657,35 @@
     }
 
 
+    function getCredentialsFromCookie(_cookie) {
+        console.log("FEUS - getCredentialsFromCookie - call " + feAPI + "/auth");
+        console.log("FEUS - getCredentialsFromCookie - cookie: " + _cookie);
+        fetch(feAPI + '/auth_by_cookie',{
+            method: 'POST',
+            //credentials: 'same-origin',
+            credentials: 'include',
+            headers:{
+                Accept: 'application/json',
+            }
+        })
+            .then(payload => payload.json())
+            .then(resp => {
+            console.log(resp);
+            console.log(resp.access_token);
+            bearer = resp.access_token;
+            console.log("FEUS - getCredentialsFromCookie - bearer: " + bearer);
+            localStorage.setItem('bearer',resp.access_token);
+            localStorage.setItem('date',new Date().getTime());
+        })
+            .catch(err => {
+            console.log('FEUS - getCredentialsFromCookie - ERROR. Something went wrong:' + err)
+        });
+
+    }
+
     function getCredentials(_username, _password) {
         console.log("FEUS - getCredentials - call " + feAPI + "/auth");
-        console.log("FEUS - getCredentials - username: " + _username + " - password: " + _password);
+        console.log("FEUS - getCredentials - username: " + _username);
         fetch(feAPI + '/auth',{
             method: 'POST',
             headers:{
@@ -593,14 +753,15 @@
         }
         let deadLine = parseFloat(localStorage.getItem('date')) + parseFloat(authrenewal);
         let rest = (deadLine - new Date().getTime())/1000; // Delay between deadline and now, in seconds
-        console.log("FEUS - isWellLoggedIn - deadLine (" + deadLine + ") - new Date().getTime() (" + new Date().getTime() + ") = " + rest);
-        //console.log("FEUS - isWellLoggedIn - localStorage.getItem('date'):" + localStorage.getItem('date'));
+        //console.log("FEUS - isWellLoggedIn() - deadLine (" + deadLine + ") - new Date().getTime() (" + new Date().getTime() + ") = " + rest);
+        //console.log("FEUS - isWellLoggedIn() - localStorage.getItem('date'):" + localStorage.getItem('date'));
         if (deadLine < new Date().getTime()) {
-            console.log("FEUS - isWellLoggedIn() - false ()");
+            console.log("FEUS - isWellLoggedIn() - false");
             return false;
         }
         else {
-            console.log("FEUS - isWellLoggedIn() - true");
+            bearer = localStorage.getItem('bearer');
+            //console.log("FEUS - isWellLoggedIn() - true");
             return true;
         }
     }
