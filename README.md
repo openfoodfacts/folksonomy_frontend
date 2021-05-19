@@ -32,6 +32,11 @@ Any kind of contribution is welcome: coding or bug/enhancement reports.
 Javascript coders: use easy to understand javascript; suggest small commits/PR; please aks/suggest before using a new library.
 
 # Changelog
+### 2021-05-19T21:14
+* New auth: no more need to authenticate if the user is already logued on Open Food Facts
+* Edit button is now working
+* UI improvements (deleted property is removed from table, etc.)
+* Improvements in the javascript console: http queries are displayed in the console as curl command lines
 ### 2021-05-10T13:18
 * Control prorperties' names (`^[a-z0-9_]+(\:[a-z0-9_]+)*$`)
 * Beta alert
