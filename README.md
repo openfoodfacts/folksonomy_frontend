@@ -32,6 +32,8 @@ Any kind of contribution is welcome: coding or bug/enhancement reports.
 Javascript coders: use easy to understand javascript; suggest small commits/PR; please aks/suggest before using a new library.
 
 # Changelog
+### 2021-05-21T23:30
+* Add autocomplete to property field
 ### 2021-05-19T21:14
 * New auth: no more need to authenticate if the user is already logued on Open Food Facts
 * Edit button is now working
