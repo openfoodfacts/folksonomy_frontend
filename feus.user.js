@@ -2,7 +2,8 @@
 // @name        Folksonomy Engine user script
 // @description Add Folksonomy Engine UI to Open Food Facts web pages.
 // @namespace   openfoodfacts.org
-// @version     2021-05-19T21:14
+// @version     2021-05-21T23:30
+//
 // @include     https://*.openfoodfacts.org/*
 // @include     https://*.openproductsfacts.org/*
 // @include     https://*.openbeautyfacts.org/*
@@ -10,6 +11,7 @@
 // @include     https://*.pro.openfoodfacts.org/*
 // @include     https://*.openfoodfacts.dev/*
 // @include     http://*.productopener.localhost/*
+//
 // @exclude     https://analytics.openfoodfacts.org/*
 // @exclude     https://api.folksonomy.openfoodfacts.org/*
 // @exclude     https://*.wiki.openfoodfacts.org/*
@@ -19,8 +21,10 @@
 // @exclude     https://donate.openfoodfacts.org/*
 // @exclude     https://hunger.openfoodfacts.org/*
 // @exclude     https://monitoring.openfoodfacts.org/*
+//
 // @icon        http://world.openfoodfacts.org/favicon.ico
 // @grant       GM_getResourceText
+//
 // @require     http://code.jquery.com/jquery-latest.min.js
 // @require     http://code.jquery.com/ui/1.12.1/jquery-ui.min.js
 // @require     https://static.openfoodfacts.org/js/dist/jquery.cookie.js
@@ -41,8 +45,6 @@
 // TODO
 
 // Priority 1:
-// * add edit feature
-// * create lists of products with a chosen property/value pair; eg. list of all products containing: "toBeReviewed":"quickly"
 // * organise a place for property documentation, and link FEUS to it (the wiki?)
 
 // Priority 2:
@@ -54,7 +56,7 @@
     'use strict';
 
     const pageType = isPageType(); // test page type
-    console.log("FEUS - Folksonomy Engine User Script - 2021-05-19T21:14 - mode: " + pageType);
+    console.log("FEUS - Folksonomy Engine User Script - 2021-05-21T23:30 - mode: " + pageType);
 
     const feAPI = "https://api.folksonomy.openfoodfacts.org";
     //const feAPI = "http://127.0.0.1:8000";
@@ -180,8 +182,6 @@
             '<tbody id="free_prop_body">' +
             '' +
             '</tbody>' +
-            //'<button class="btn">Submit</button>' +
-            //'<button class="btn" hx-get="/contact/1">Cancel</button>' +
             '<tr id="fe_new_row">' +
             '<td><input type="hidden" name="owner"> </td>' +
             '<td><input id="fe_form_new_property" name="property" class="text tagify-me" value="" lang="en" data-autocomplete="https://world.openfoodfacts.org/cgi/suggest.pl?tagtype=labels&" ></input><small id="fe_prop_err" style="visibility: hidden;">Can countain only minus letters, numbers, "_", and ":"</small></td>' +
@@ -192,6 +192,24 @@
             '</form>' +
             '</div>' +
             '<!-- ----- /Folksonomy Engine ----- -->');
+
+
+        // Autocomplete on property field
+        // TODO: launch when a key is pressed in the field?
+        fetch(feAPIKeysURL)
+            .then(function(u){ return u.json();})
+            .then(function(json){
+            let list = $.map(json, function (value, key) {
+                        return {
+                            label: value.k + " (" + value.count + ")",
+                            value: value.k
+                        }
+                    });
+            $("#fe_form_new_property").autocomplete({
+                source: list,
+            });
+        });
+
 
         // Control new property entry
         $("#fe_form_new_property").on("keyup", function() {
@@ -221,9 +239,6 @@
             console.log("FEUS - displayFolksonomyKeyValues() - " + JSON.stringify(data));
             var index = 0;
             while (index < data.length) {
-                // TODO: links to 1. a page listing all the products related to the property (k);
-                //                2. a page listing all the products related to the property-value pair (k, v).
-                // <input type="text" name="lastName" value="Blow">
                 $("#free_prop_body").prepend('<tr>' +
                                              '<td class="version" data-version="'+data[index].version+'"> </td>' +
                                              '<td class="property"><a href="/key/' + data[index].k + '">'                         + data[index].k + '</a></td>' +
@@ -250,7 +265,7 @@
         $("#main_column h1").before('<h2 id="key_title">Key: '+ _key + (_value ? ": "+ _value : '') + '</h2>' +
                                     '<p>List of products containing this key. You can also find the <a href="/keys">list of all other keys</a>.</p>' +
                                     '<ul id="product_list"></ul>');
-        $("#main_column p").remove(); // remove <p>Invalid address.</p>
+        $("#main_column p").remove();  // remove <p>Invalid address.</p>
         $("#main_column h1").remove(); // remove <h1>Error</h1>
         console.log("FEUS - displayProductsWithKey(_key) - GET " + feAPIProductsURL + "?k=" + _key + (_value ? "&v="+ _value : ''));
         $.getJSON(feAPIProductsURL + "?k=" + _key + (_value ? "&v="+ _value : ''), function(data) {
@@ -271,9 +286,7 @@
              'https://api.folksonomy.openfoodfacts.org/keys' \
              -H 'accept: application/json'
         */
-        //_key = _key.charAt(0).toUpperCase() + _key.slice(1);
         // TODO: add owner filter?
-        // TODO: TABLE !!
         $("#main_column p").remove(); // remove <p>Invalid address.</p>
         $("#main_column h1").before('<h2 id="key_title">Keys</h2>' +
                                     '<p>List of all keys.</p>' +
@@ -380,7 +393,7 @@
                 $("#free_prop_body").append('<tr>'+
                                             '<td class="version" data-version="1"></td>'+
                                             '<td class="property"><a href="/key/' + _k + '">' + _k + '</a></td>'+
-                                            '<td class="value"><a href="/key/' + _k + '/' + _v + '">' + _v + '</a></td>'+
+                                            '<td class="value"><a href="/key/' + _k + '/value/' + _v + '">' + _v + '</a></td>'+
                                             '<td>'+
                                             '<span class="button tiny fe_save_kv" style="display: none">save</span> '+
                                             '<span class="button tiny fe_edit_kv">Edit</span> '+
