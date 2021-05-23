@@ -2,7 +2,8 @@
 // @name        Folksonomy Engine user script
 // @description Add Folksonomy Engine UI to Open Food Facts web pages.
 // @namespace   openfoodfacts.org
-// @version     2021-05-21T23:30
+// @version     2021-05-23T17:08
+// @updateURL   https://github.com/openfoodfacts/folksonomy_frontend/raw/main/feus.user.js
 //
 // @include     https://*.openfoodfacts.org/*
 // @include     https://*.openproductsfacts.org/*
@@ -23,9 +24,9 @@
 // @exclude     https://monitoring.openfoodfacts.org/*
 //
 // @icon        http://world.openfoodfacts.org/favicon.ico
-// @grant       GM_getResourceText
+// @grant       none
 //
-// @require     http://code.jquery.com/jquery-latest.min.js
+// @require     https://code.jquery.com/jquery-2.1.4.min.js
 // @require     http://code.jquery.com/ui/1.12.1/jquery-ui.min.js
 // @require     https://static.openfoodfacts.org/js/dist/jquery.cookie.js
 // @author      charles@openfoodfacts.org
@@ -33,43 +34,44 @@
 /* eslint-env jquery */
 
 // Product Opener (Open Food Facts web app) uses:
-// * jQuery 2.1.4:                view-source:https://static.openfoodfacts.org/js/dist/jquery.js
+// * jQuery 2.1.4:                view-source:https://static.openfoodfacts.org/js/dist/jquery.js (~84 KB)
 //                                http://code.jquery.com/jquery-2.1.4.min.js
-// * jQuery-UI 1.12.1:            view-source:https://static.openfoodfacts.org/js/dist/jquery-ui.js
+// * jQuery-UI 1.12.1:            view-source:https://static.openfoodfacts.org/js/dist/jquery-ui.js (~82 KB)
 //                                http://code.jquery.com/ui/1.12.1/jquery-ui.min.js
-// * Tagify 3.x:                  https://github.com/yairEO/tagify
+// * Tagify 3.x:                  https://github.com/yairEO/tagify (~47 KB)
 // * Foundation 5 CSS Framework:  https://sudheerdev.github.io/Foundation5CheatSheet/
 //                                See also: https://github.com/openfoodfacts/openfoodfacts-server/pull/2987
 
+// Dev notes
+// * User scripts work in a isolated world: it does not have access to scripts running inside the page.
+//   See: https://stackoverflow.com/questions/551028/greasemonkey-script-and-function-scope
 
 // TODO
 
 // Priority 1:
 // * organise a place for property documentation, and link FEUS to it (the wiki?)
 
-// Priority 2:
-// * // @updateURL   https://github.com/openfoodfacts/power-user-script/raw/master/OpenFoodFactsPower.user.js
-
+// See: https://github.com/openfoodfacts/folksonomy_frontend/issues
 
 
 (function() {
     'use strict';
 
     const pageType = isPageType(); // test page type
-    console.log("FEUS - Folksonomy Engine User Script - 2021-05-21T23:30 - mode: " + pageType);
+    console.log("FEUS - Folksonomy Engine User Script - 2021-05-23T17:08 - mode: " + pageType);
 
     const feAPI = "https://api.folksonomy.openfoodfacts.org";
     //const feAPI = "http://127.0.0.1:8000";
+
     var bearer;
     //bearer = "charlesnepote__U3bc56413-5254-4530-b9bd-febb3fc46a6f"; // local tests
-    var authrenewal = 1 * 5 * 60 * 60 * 1000; console.log("authrenewal: " + authrenewal); // days * hours * minutes * seconds * ms
     var authHeader, loginWindow;
-    //var myHeaders = new Headers();
+    const authrenewal = 1 * 5 * 60 * 60 * 1000; console.log("authrenewal: " + authrenewal); // days * hours * minutes * seconds * ms
 
 
     // css
     // See https://stackoverflow.com/questions/4376431/javascript-heredoc
-    var css = `
+    const css = `
 /*
  * OFF web app already load jquery-ui.css but it doesn't work properly with "dialog" function.
  * We add the CSS this way so that the embedded, relatively linked images load correctly.
@@ -109,7 +111,7 @@
 
 `;
     // apply custom CSS
-    var s = document.createElement('style');
+    const s = document.createElement('style');
     s.type = 'text/css';
     s.innerHTML = css;
     document.documentElement.appendChild(s);
@@ -119,15 +121,9 @@
         pageType === "saved-product page" || pageType === "key"           ||
         pageType === "keys") {
 
-        var code = $("#barcode").html();
+        const code = $("#barcode").html();
         console.log("FEUS - barcode: " + code);
         var feAPIProductURL = feAPI + "/product/" + code;
-        var editURL = feAPI + "/product";
-        var addKVURL = feAPI + "/product";
-        var deleteKVURL = feAPI + "/product";
-        var feAPIProductsURL = feAPI + "/products";
-        var feAPIKeysURL = feAPI + "/keys";
-        var feUpdateKVURL = feAPI + "/product";
     }
 
 
@@ -196,7 +192,7 @@
 
         // Autocomplete on property field
         // TODO: launch when a key is pressed in the field?
-        fetch(feAPIKeysURL)
+        fetch(feAPI + "/keys")
             .then(function(u){ return u.json();})
             .then(function(json){
             let list = $.map(json, function (value, key) {
@@ -209,7 +205,6 @@
                 source: list,
             });
         });
-
 
         // Control new property entry
         $("#fe_form_new_property").on("keyup", function() {
@@ -237,20 +232,23 @@
                 return;
             }
             console.log("FEUS - displayFolksonomyKeyValues() - " + JSON.stringify(data));
-            var index = 0;
-            while (index < data.length) {
-                $("#free_prop_body").prepend('<tr>' +
-                                             '<td class="version" data-version="'+data[index].version+'"> </td>' +
-                                             '<td class="property"><a href="/key/' + data[index].k + '">'                         + data[index].k + '</a></td>' +
-                                             '<td class="value"><a href="/key/' + data[index].k + '/value/' + data[index].v +'">' + data[index].v + '</a></td>' +
-                                             '<td>'+
-                                             '<span class="button tiny fe_save_kv" style="display: none">save</span> '+
-                                             '<span class="button tiny fe_edit_kv">Edit</span> '+
-                                             '<span class="button tiny fe_del_kv">Delete</span>'+
-                                             '</td>' +
-                                             '</tr>');
-                index++;
+            let index = data.length, content = "";
+            // Sort by key
+            let _data = data.sort(function(a,b){ return a.k <b.k ?1 :-1 });
+            while (index--) {
+                content += ('<tr>' +
+                            '<td class="version" data-version="' + _data[index].version + '"> </td>' +
+                            '<td class="property"><a href="/key/' + _data[index].k + '">'                          + _data[index].k + '</a></td>' +
+                            '<td class="value"><a href="/key/' + _data[index].k + '/value/' + _data[index].v +'">' + _data[index].v + '</a></td>' +
+                            '<td>'+
+                            '<span class="button tiny fe_save_kv" style="display: none">save</span> '+
+                            '<span class="button tiny fe_edit_kv">Edit</span> '+
+                            '<span class="button tiny fe_del_kv">Delete</span>'+
+                            '</td>' +
+                            '</tr>');
             };
+            // TODO: sortable by user?
+            $("#free_prop_body").prepend(content);
             $(".fe_del_kv").click( function() { isWellLoggedIn() ? delKeyValue($(this)) : loginProcess(); } );
             $(".fe_edit_kv").click( function() { isWellLoggedIn() ? editKeyValue($(this)) : loginProcess(); } );
         });
@@ -262,21 +260,23 @@
             'https://api.folksonomy.openfoodfacts.org/products?k=test&v=test' \
             -H 'accept: application/json'
         */
-        $("#main_column h1").before('<h2 id="key_title">Key: '+ _key + (_value ? ": "+ _value : '') + '</h2>' +
+        $("#main_column h1").before('<!-- display products with key ' + _key + (_value ? ": "+ _value : '') + ' -->' +
+                                    '<h2 id="key_title">Key: '+ _key + (_value ? ": "+ _value : '') + '</h2>' +
                                     '<p>List of products containing this key. You can also find the <a href="/keys">list of all other keys</a>.</p>' +
                                     '<ul id="product_list"></ul>');
         $("#main_column p").remove();  // remove <p>Invalid address.</p>
         $("#main_column h1").remove(); // remove <h1>Error</h1>
-        console.log("FEUS - displayProductsWithKey(_key) - GET " + feAPIProductsURL + "?k=" + _key + (_value ? "&v="+ _value : ''));
-        $.getJSON(feAPIProductsURL + "?k=" + _key + (_value ? "&v="+ _value : ''), function(data) {
+
+        console.log("FEUS - displayProductsWithKey(_key) - GET " + feAPI + "/products?k=" + _key + (_value ? "&v="+ _value : ''));
+        $.getJSON(feAPI + "/products?k=" + _key + (_value ? "&v="+ _value : ''), function(data) {
             console.log("FEUS - displayProductsWithKey() - " + JSON.stringify(data));
-            var index = 0;
-            while (index < data.length) {
-                $("#product_list").append('<li class="product_code">' +
-                                          '<a href="/product/'+ data[index].product + '">' + data[index].product + '</a>' +
-                                          '</li>');
-                index++;
+            let index = data.length, content = "";
+            while (index--) {
+                content += ('<li class="product_code">' +
+                            '<a href="/product/'+ data[index].product + '">' + data[index].product + '</a>' +
+                            '</li>');
             };
+            $("#product_list").append(content);
         });
     }
 
@@ -302,19 +302,21 @@
                                     '</tbody>' +
                                     '</table>');
         $("#main_column h1").remove(); // remove <h1>Error</h1>
-        console.log("FEUS - displayAllKeys(_owner) - GET " + feAPIKeysURL);
-        $.getJSON(feAPIKeysURL, function(data) {
+        console.log("FEUS - displayAllKeys(_owner) - GET " + feAPI + "/keys");
+        $.getJSON(feAPI + "/keys", function(data) {
             console.log("FEUS - displayAllKeys() - " + JSON.stringify(data));
-            var index = 0;
-            while (index < data.length) {
-                $("#keys_list").append('<tr class="key">' +
-                                       '<td> </td>' +
-                                       '<td><a href="/key/'+ data[index].k + '">' + data[index].k + '</a></td>' +
-                                       '<td>' + data[index].count + '</td>' +
-                                       '<td>' + data[index].values + '</td>' +
-                                       '</tr>');
-                index++;
+            let index = data.length, content = "";
+            // sort by count
+            let _data = data.sort(function(a,b){ return a.count >b.count ?1 :-1 });
+            while (index--) {
+                content += ('<tr class="key">' +
+                            '<td> </td>' +
+                            '<td><a href="/key/'+ _data[index].k + '">' + _data[index].k + '</a></td>' +
+                            '<td>' + _data[index].count + '</td>' +
+                            '<td>' + _data[index].values + '</td>' +
+                            '</tr>');
             };
+            $("#keys_list").append(content);
         });
     }
 
@@ -330,7 +332,7 @@
         const _version = $(_this).parent().parent().children(".version").attr("data-version");
         console.log("Property: " + _property);
         console.log("Version: " + _version);
-        fetch(deleteKVURL + "/" + code + "/" + _property + "?version=" + _version,{
+        fetch(feAPI + "/product/" + code + "/" + _property + "?version=" + _version,{
             method: 'DELETE',
             headers: new Headers({
                 'Accept': 'application/json',
@@ -367,13 +369,13 @@
         //              }'
         console.log("FEUS - "+
                     "curl -X 'POST' \\\n" +
-                    "        '" + addKVURL + "' \\\n" +
+                    "        '" + feAPI + "/product' \\\n" +
                     "        -H 'accept; application/json' \\\n" +
                     "        -H 'Authorization: Bearer " + bearer + "' \\\n" +
                     "        -H 'Content-Type: application/json' \\\n" +
                     "        -d '{ \"product\": \"" + _code + "\", \"k\": \"" + _k + "\", \"v\": \"" + _v + "\" }'");
         let resStatus = 0;
-        fetch(addKVURL,{
+        fetch(feAPI + "/product",{
             method: 'POST',
             //mode: 'no-cors',         // no!
             //withCredentials: true,   // no! provide CORS error
@@ -415,7 +417,7 @@
             .then(res => {
             // When API answers an 422 error, the message is included in a {detail: {msg: "xxx"}} object
             // When API answers a 200, the message is "ok"
-            var data = res.data ? res.data : res.detail.msg;
+            let data = res.data ? res.data : res.detail.msg;
             console.log(JSON.stringify(data));
         })
             .catch(err => { // network errors like 500
@@ -471,13 +473,13 @@
         //              }'
         console.log("FEUS - "+
                     "curl -X 'PUT' \\\n" +
-                    "        '" + feUpdateKVURL + "' \\\n" +
+                    "        '" + feAPI + "/product' \\\n" +
                     "        -H 'accept; application/json' \\\n" +
                     "        -H 'Authorization: Bearer " + bearer + "' \\\n" +
                     "        -H 'Content-Type: application/json' \\\n" +
                     "        -d '{ \"product\": \"" + _code + "\", \"k\": \"" + _k + "\", \"v\": \"" + _v + "\", \"version\": " + _version + " }'");
         let resStatus = 0;
-        fetch(feUpdateKVURL,{
+        fetch(feAPI + "/product",{
             method: 'PUT',
             headers: new Headers({
                 'Accept': 'application/json',
@@ -539,24 +541,23 @@
         $.getJSON(feAPIProductURL, function(data) {
             console.log("FEUS - displayFolksonomyForm() - URL: " + feAPIProductURL);
             console.log("FEUS - displayFolksonomyForm() - " + JSON.stringify(data));
-            var index = 0;
-            while (index < data.length) {
+            let index = data.length, content = "";
+            let _data = data.sort(function(a,b){ return a.k <b.k ?1 :-1 });
+            while (index--) {
                 // TODO: links to 1. a page listing all the products related to the property (k);
                 //                2. a page listing all the products related to the property-value pair (k, v).
-                $("#product_free_properties").append(
-                    '<form class="free_properties_form">' +
-                    '<p class="property_value">' +
-                    '<label for="feus-' + data[index].k + '" class="property">' + data[index].k + '</label> ' +
-                    '<input id="feus-' + data[index].k + '" name="'+ data[index].k + '" class="value text" value="'+ data[index].v + '">' +
-                    '</p>' +
-                    '</form>'
-                );
-                index++;
+                content += ('<form class="free_properties_form">' +
+                            '<p class="property_value">' +
+                            '<label for="feus-' + _data[index].k + '" class="property">' + _data[index].k + '</label> ' +
+                            '<input id="feus-' + _data[index].k + '" name="'+ _data[index].k + '" class="value text" value="'+ _data[index].v + '">' +
+                            '</p>' +
+                            '</form>');
             }
+            $("#product_free_properties").append(content);
         });
 
         $("#free_properties").append(
-            '<form class="new_free_properties_form" action="'+ addKVURL +'">' +
+            '<form class="new_free_properties_form" action="'+ feAPI + '/product">' +
             '<p class="property_value">' +
             '<label for="k" class="property">Property: </label> ' +
             '<input id="feus-k" name="k" class="value text"></input>' +
@@ -577,26 +578,21 @@
      */
     function isPageType() {
         // Detect API page. Example: https://world.openfoodfacts.org/api/v0/product/3599741003380.json
-        let regex_api = RegExp('api/v0/');
-        if(regex_api.test(document.URL) === true) return "api";
+        if (new RegExp('api/v0/').test(document.URL) === true) return "api";
 
         // Detect API page. Examples:
         // * https://world.openfoodfacts.org/key/test
         // * https://world.openfoodfacts.org/key/test/value/test
-        let regex_key = RegExp('key/');
-        if(regex_key.test(document.URL) === true) return "key";
+        if (new RegExp('/key/').test(document.URL) === true) return "key";
 
         // Detect API page. Example: https://world.openfoodfacts.org/key/test
-        let regex_keys = RegExp('keys$');
-        if(regex_keys.test(document.URL) === true) return "keys";
+        if (new RegExp('keys$').test(document.URL) === true) return "keys";
 
         // Detect producers platform
-        var regex_pro = RegExp('\.pro\.open');
-        if(regex_pro.test(document.URL) === true) proPlatform = true;
+        if (new RegExp('\.pro\.open').test(document.URL) === true) proPlatform = true;
 
         // Detect "edit" mode.
-        var regex = RegExp('product\\.pl');
-        if(regex.test(document.URL) === true) {
+        if (new RegExp('product\\.pl').test(document.URL) === true) {
             if ($("body").hasClass("error_page")) return "error page"; // perhaps a more specific test for product-not-found?
             if (!$("#sorted_langs").length) return "saved-product page"; // Detect "Changes saved." page
             else return "edit";
@@ -611,27 +607,25 @@
         if ($(".products")[0]) return "list";
 
         // Detect search form
-        var regex_search = RegExp('cgi/search.pl$');
-        if(regex_search.test(document.URL) === true) return "search form";
+        if (new RegExp('cgi/search.pl$').test(document.URL) === true) return "search form";
 
         // Detect recentchanges
         if ($("body").hasClass("recent_changes_page")) return "recent changes";
 
         //Detect if in the list of ingredients
-        regex_search = RegExp('ingredients');
-        if(regex_search.test(document.URL) === true) return "ingredients";
+        if (new RegExp('ingredients').test(document.URL) === true) return "ingredients";
 
         // Finally, it's a product view
         if ($("body").hasClass("product_page")) return "product view";
 
         // Hack for Open Products Facts, Open Beauty Facts...
-        if($("body").attr("typeof") === "food:foodProduct") return "product view";
+        if ($("body").attr("typeof") === "food:foodProduct") return "product view";
     }
 
 
     function loginProcess() {
         // Firstly try to athenticate by the OFF cookie
-        var cookie = $.cookie('session') ? $.cookie('session') : "";
+        let cookie = $.cookie('session') ? $.cookie('session') : "";
         if (cookie) {
             getCredentialsFromCookie(cookie);
             return;
@@ -696,6 +690,7 @@
 
     }
 
+
     function getCredentials(_username, _password) {
         console.log("FEUS - getCredentials - call " + feAPI + "/auth");
         console.log("FEUS - getCredentials - username: " + _username);
@@ -746,6 +741,7 @@
         //$("#power-user-help").prev().addClass('ui-state-information');
         return popup;
     }
+
 
     // Toggle popup
     function togglePopupInfo(message) {
