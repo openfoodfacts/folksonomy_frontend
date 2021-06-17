@@ -2,7 +2,7 @@
 // @name        Folksonomy Engine user script
 // @description Add Folksonomy Engine UI to Open Food Facts web pages.
 // @namespace   openfoodfacts.org
-// @version     2021-05-23T17:08
+// @version     2021-06-17T13:58
 // @updateURL   https://github.com/openfoodfacts/folksonomy_frontend/raw/main/feus.user.js
 //
 // @include     https://*.openfoodfacts.org/*
@@ -26,9 +26,6 @@
 // @icon        http://world.openfoodfacts.org/favicon.ico
 // @grant       none
 //
-// @require     https://code.jquery.com/jquery-2.1.4.min.js
-// @require     http://code.jquery.com/ui/1.12.1/jquery-ui.min.js
-// @require     https://static.openfoodfacts.org/js/dist/jquery.cookie.js
 // @author      charles@openfoodfacts.org
 // ==/UserScript==
 /* eslint-env jquery */
@@ -43,8 +40,21 @@
 //                                See also: https://github.com/openfoodfacts/openfoodfacts-server/pull/2987
 
 // Dev notes
-// * User scripts work in a isolated world: it does not have access to scripts running inside the page.
-//   See: https://stackoverflow.com/questions/551028/greasemonkey-script-and-function-scope
+// * With "@grant none", in the header, the user script has also access to scripts running inside the page. See:
+//   * https://github.com/greasemonkey/greasemonkey/issues/1614
+//   * https://stackoverflow.com/questions/551028/greasemonkey-script-and-function-scope
+// * This script needs: jquery, jquery UI (autocomplete, dialog), jquery cookie
+// * things to test:
+//   * https://world.openfoodfacts.org/keys
+//   * https://world.openfoodfacts.org/key/has_funny_barcode
+//   * https://world.openfoodfacts.org/key/packaging:character:wikidata/value/Q462
+//   * https://world.openfoodfacts.org/product/8420567015200/merlu-blanc-panure-croustillante-star-wars-maremundi
+//     * see property-values display
+//     * search for properties containing "char"
+//     * add a property-value pair
+//     * edit a property-value pair
+//     * delete a property-value pair
+//     * add a new property-value pair containing the previous deleted property-value
 
 // TODO
 
@@ -58,7 +68,7 @@
     'use strict';
 
     const pageType = isPageType(); // test page type
-    console.log("FEUS - Folksonomy Engine User Script - 2021-05-23T17:08 - mode: " + pageType);
+    console.log("FEUS - Folksonomy Engine User Script - 2021-06-17T13:58 - mode: " + pageType);
 
     const feAPI = "https://api.folksonomy.openfoodfacts.org";
     //const feAPI = "http://127.0.0.1:8000";
@@ -121,7 +131,7 @@
         pageType === "saved-product page" || pageType === "key"           ||
         pageType === "keys") {
 
-        const code = $("#barcode").html();
+        var code = $("#barcode").html();
         console.log("FEUS - barcode: " + code);
         var feAPIProductURL = feAPI + "/product/" + code;
     }
@@ -201,6 +211,7 @@
                             value: value.k
                         }
                     });
+            // jquery UI autocomplete: https://jqueryui.com/autocomplete/
             $("#fe_form_new_property").autocomplete({
                 source: list,
             });
@@ -222,7 +233,9 @@
         $('#new_kv_button').on("click", function() {
             isWellLoggedIn() ?
             addKV(code, $("#fe_form_new_property").val(), $("#fe_form_new_value").val(), ""):
-            loginProcess();
+            loginProcess(function () {
+                addKV(code, $("#fe_form_new_property").val(), $("#fe_form_new_value").val(), "");
+            });
         });
 
         // Get all property/value pairs and display it
@@ -623,11 +636,12 @@
     }
 
 
-    function loginProcess() {
+    function loginProcess(callback) {
         // Firstly try to athenticate by the OFF cookie
         let cookie = $.cookie('session') ? $.cookie('session') : "";
         if (cookie) {
-            getCredentialsFromCookie(cookie);
+            console.log("FEUS - loginProcess(callback) => getCredentialsFromCookie()");
+            getCredentialsFromCookie(cookie, callback);
             return;
         }
 
@@ -664,7 +678,7 @@
     }
 
 
-    function getCredentialsFromCookie(_cookie) {
+    function getCredentialsFromCookie(_cookie, callback) {
         console.log("FEUS - getCredentialsFromCookie - call " + feAPI + "/auth");
         console.log("FEUS - getCredentialsFromCookie - cookie: " + _cookie);
         fetch(feAPI + '/auth_by_cookie',{
@@ -683,6 +697,7 @@
             console.log("FEUS - getCredentialsFromCookie - bearer: " + bearer);
             localStorage.setItem('bearer',resp.access_token);
             localStorage.setItem('date',new Date().getTime());
+            callback();
         })
             .catch(err => {
             console.log('FEUS - getCredentialsFromCookie - ERROR. Something went wrong:' + err)
