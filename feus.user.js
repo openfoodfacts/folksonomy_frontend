@@ -2,7 +2,7 @@
 // @name        Folksonomy Engine user script
 // @description Add Folksonomy Engine UI to Open Food Facts web pages.
 // @namespace   openfoodfacts.org
-// @version     2021-06-17T13:58
+// @version     2021-09-14T16:54
 // @updateURL   https://github.com/openfoodfacts/folksonomy_frontend/raw/main/feus.user.js
 //
 // @include     https://*.openfoodfacts.org/*
@@ -68,7 +68,7 @@
     'use strict';
 
     const pageType = isPageType(); // test page type
-    console.log("FEUS - Folksonomy Engine User Script - 2021-06-17T13:58 - mode: " + pageType);
+    console.log("FEUS - Folksonomy Engine User Script - 2021-09-14T16:54 - mode: " + pageType);
 
     const feAPI = "https://api.folksonomy.openfoodfacts.org";
     //const feAPI = "http://127.0.0.1:8000";
@@ -93,7 +93,7 @@
 @import url("https://netdna.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css");
 
 .feus {
-  background-color: #edf2f8;
+  background-color: #f7edf8;
   margin-bottom: 1rem;
 }
 
@@ -102,11 +102,16 @@
 }
 
 .feus h2 {
-  border-bottom: 1px solid #1eff3a;
+  /* border-bottom: 1px solid #1eff3a; */
+}
+
+.feus p {
+  margin-bottom: 0.3rem;
 }
 
 #free_properties_form table {
   background: none;
+  margin-top: 1rem;
 }
 
 #free_properties_form table tr * {
@@ -177,7 +182,11 @@
             '<div id="free_properties_1" class="feus">' +
             '<h2>User properties (<span data-tooltip aria-haspopup="true" class="has-tip" data-position="top" data-alignment="left" title="Be aware the data model might be modified. Use at your own risk.">beta</span>)</h2>' +
             '<p id="fe_login_info"></p>' +
-            '<p>This properties are created and filed by users for any kind of usages. Be aware the data model might be modified. Use at your own risk.</p>' +
+            "<p>This properties are created and filed by users for any kind of usages. Feel free to add your own. " +
+            "You can dive into <a href='/keys'>the list of properties already used by the community</a> " +
+            "or explore the <a href='https://wiki.openfoodfacts.org/Folksonomy/Property'>properties' documentation and its search engine</a>.</p>" +
+            "<p>Be aware the data model might be modified. Use at your own risk.</p>" +
+            "<p>This is bring by the <a href='https://wiki.openfoodfacts.org/Folksonomy_Engine'>folksonomy engine project</a>. Don't hesitate to participate or give feedback.</p>" +
             '<form id="free_properties_form">' +
             '<table>' +
             '<tr>' +
@@ -188,10 +197,18 @@
             '<tbody id="free_prop_body">' +
             '' +
             '</tbody>' +
+            '<!-- ---- New row ---- -->' +
             '<tr id="fe_new_row">' +
             '<td><input type="hidden" name="owner"> </td>' +
-            '<td><input id="fe_form_new_property" name="property" class="text tagify-me" value="" lang="en" data-autocomplete="https://world.openfoodfacts.org/cgi/suggest.pl?tagtype=labels&" ></input><small id="fe_prop_err" style="visibility: hidden;">Can countain only minus letters, numbers, "_", and ":"</small></td>' +
-            '<td><input id="fe_form_new_value" name="value"></input></td>' +
+            '<td>' +
+            '<input id="fe_form_new_property" name="property" class="text tagify-me" value="" lang="en" placeholder="Enter a property" ></input>' +
+                '<small id="fe_prop_eg" >Example: color</small>' +
+                '<small id="fe_prop_err" style="visibility: hidden;"><br>Can countain only minus letters, numbers, "_", and ":"</small>' +
+            '</td>' +
+            '<td>' +
+            '<input id="fe_form_new_value" name="value" placeholder="value" ></input>' +
+            '<small id="fe_prop_eg" >Example: blue</small>' +
+            '</td>' +
             '<td><span id="new_kv_button" class="button tiny round">Submit</span></td>' +
             '</tr>' +
             '</table>' +
@@ -273,11 +290,14 @@
             'https://api.folksonomy.openfoodfacts.org/products?k=test&v=test' \
             -H 'accept: application/json'
         */
-        $("#main_column h1").before('<!-- display products with key ' + _key + (_value ? ": "+ _value : '') + ' -->' +
-                                    '<h2 id="key_title">Key: '+ _key + (_value ? ": "+ _value : '') + '</h2>' +
-                                    '<p>List of products containing this key. You can also find the <a href="/keys">list of all other keys</a>.</p>' +
-                                    '<ul id="product_list"></ul>');
         $("#main_column p").remove();  // remove <p>Invalid address.</p>
+        $("#main_column h1").before('<!-- display products with key ' + _key + (_value ? ": "+ _value : '') + ' -->' +
+                                    '<h2 id="key_title">Property: '+ _key + (_value ? ": "+ _value : '') + '</h2>' +
+                                    '<p>You should find a <a href="https://wiki.openfoodfacts.org/Folksonomy/Property/'+ _key + '">dedicated documentation</a>' +
+                                    ' about this property on Open Food Facts wiki</p>' +
+                                    '<p>List of products using this property:</p>' +
+                                    '<div id="fe_infobox" style="float: right; border: solid black; width: 20%">Tip: you can also find the <a href="/keys">list of all properties</a>.</div>' +
+                                    '<ul id="product_list"></ul>');
         $("#main_column h1").remove(); // remove <h1>Error</h1>
 
         console.log("FEUS - displayProductsWithKey(_key) - GET " + feAPI + "/products?k=" + _key + (_value ? "&v="+ _value : ''));
@@ -309,6 +329,7 @@
                                     '<th class="key_name">Key</th>' +
                                     '<th class="count">Count</th>' +
                                     '<th class="values">Values</th>' +
+                                    '<th class="doc">Documentation</th>' +
                                     '</tr>' +
                                     '<tbody id="free_prop_body">' +
                                     '' +
@@ -327,6 +348,7 @@
                             '<td><a href="/key/'+ _data[index].k + '">' + _data[index].k + '</a></td>' +
                             '<td>' + _data[index].count + '</td>' +
                             '<td>' + _data[index].values + '</td>' +
+                            '<td><a href="https://wiki.openfoodfacts.org/Folksonomy/Property/' + _data[index].k + '">🔗</a></td>' +
                             '</tr>');
             };
             $("#keys_list").append(content);
