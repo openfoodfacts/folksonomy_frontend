@@ -32,6 +32,10 @@ Any kind of contribution is welcome: coding or bug/enhancement reports.
 Javascript coders: use easy to understand javascript; suggest small commits/PR; please aks/suggest before using a new library.
 
 # Changelog
+### 2021-09-14T16:54
+* Add links to the properties' doc on the wiki (pages: list of properties, product's page)
+* Better presentation of the "User properties" section on the product's page
+* new property form UI improvements: short hint that describes the expected value, examples below the boxes...
 ### 2021-05-21T23:30
 * Add autocomplete to property field
 ### 2021-05-19T21:14
