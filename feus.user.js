@@ -23,6 +23,10 @@
 // @exclude     https://hunger.openfoodfacts.org/*
 // @exclude     https://monitoring.openfoodfacts.org/*
 //
+// @require https://static.openfoodfacts.org/js/dist/jquery.js
+// @require https://static.openfoodfacts.org/js/dist/jquery-ui.js
+// @require https://static.openfoodfacts.org/js/dist/jquery.cookie.js
+//
 // @icon        http://world.openfoodfacts.org/favicon.ico
 // @grant       none
 //
