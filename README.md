@@ -19,7 +19,9 @@ It uses the [Folksonomy API](https://github.com/openfoodfacts/folksonomy_api).
 To run userscripts it's best to have a script manager installed. Userscript managers are available as browser extensions:
 
 * Greasemonkey  – works with Firefox - https://addons.mozilla.org/en-US/firefox/addon/greasemonkey/
-* Tampermonkey  – works with Chrome, Safari, Firefox and other browsers - http://tampermonkey.net/
+* Tampermonkey  – works with ~~Chrome~~, Safari, Firefox and other browsers - http://tampermonkey.net/
+
+**Note:** temporarily unavailable on Chrome, see: [issue #20](https://github.com/openfoodfacts/folksonomy_frontend/issues/20)
 
 Choose an appropriate manager and install it according to the requirements of your browser.
 
