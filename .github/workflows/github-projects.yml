@@ -1,9 +1,9 @@
 name: Add bugs to the Folksonomy GitHub Project
-
 on:
   issues:
     types:
-      - [opened, labeled]
+      - opened
+      - labeled
 
 jobs:
   add-to-project:
