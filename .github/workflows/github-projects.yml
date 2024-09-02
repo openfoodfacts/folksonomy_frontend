@@ -7,7 +7,7 @@ on:
 
 jobs:
   add-to-project:
-    name: Add issue to project
+    name: 🎨 Add Mockup required and Mockup available issues to the openfoodfacts-design project
     runs-on: ubuntu-latest
     steps:
       - uses: actions/add-to-project@main
@@ -15,3 +15,19 @@ jobs:
           project-url: https://github.com/orgs/openfoodfacts/projects/5
           github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
           label-operator: AND
+  add-to-design-project:
+    name: Add issues to the 🎨 openfoodfacts-design or 📚 documentation project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/add-to-project@main
+        with:
+          project-url: https://github.com/orgs/openfoodfacts/projects/11
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          labeled: 🎨 Mockup available, 🎨 Mockup required
+          label-operator: OR
+      - uses: actions/add-to-project@main
+        with:
+          project-url: https://github.com/orgs/openfoodfacts/projects/25 # Add issue to the documentation project
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          labeled: 📚 documentation
+          label-operator: OR
