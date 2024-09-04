@@ -11,7 +11,7 @@ Main features (you have to install first to see it live):
 * list of products for a given property (key); eg. https://world.openfoodfacts.org/key/color_Of_The_Cap
 
 It uses the [Folksonomy API](https://github.com/openfoodfacts/folksonomy_api).
-
+e
 ![Luminosity property for a lightbulb](https://user-images.githubusercontent.com/1689815/117824899-23670480-b26f-11eb-81bc-430f0ff1831d.png)
 
 
