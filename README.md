@@ -20,6 +20,7 @@ To run userscripts it's best to have a script manager installed. Userscript mana
 
 * Greasemonkey  – works with Firefox - https://addons.mozilla.org/en-US/firefox/addon/greasemonkey/
 * Tampermonkey  – works with ~~Chrome~~, Safari, Firefox and other browsers - http://tampermonkey.net/
+* Userscripts - works with Safari - https://apps.apple.com/kz/app/userscripts/id1463298887
 
 **Note:** temporarily unavailable on Chrome, see: [issue #20](https://github.com/openfoodfacts/folksonomy_frontend/issues/20)
 
@@ -36,7 +37,7 @@ Javascript coders: use easy to understand javascript; suggest small commits/PR; 
 # Changelog
 ### 2021-09-14T16:54
 * Add links to the properties' doc on the wiki (pages: list of properties, product's page)
-* Better presentation of the "User properties" section on the product's page
+* Better presentation of the "User properties" section on the product's page 
 * new property form UI improvements: short hint that describes the expected value, examples below the boxes...
 ### 2021-05-21T23:30
 * Add autocomplete to property field
