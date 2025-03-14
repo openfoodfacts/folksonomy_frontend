@@ -1,4 +1,13 @@
 # folksonomy_frontend
+
+---
+
+**IMPORTANT:** This project is archived, as we would like to move to a webcomponent, see https://github.com/openfoodfacts/openfoodfacts-webcomponents/discussions/32
+
+The code of this project currently live in [openfoodfacts-server]([url](https://github.com/openfoodfacts/openfoodfacts-server) repository (until it's replaced by the web-component)
+
+---
+
 This is the [Folksonomy Engine](https://wiki.openfoodfacts.org/Folksonomy_Engine) front end. It is a user script for your browser, to let you add free tags to [Open Food Facts](https://world.openfoodfacts.org/)  products. Folksonomy Engine User Script (FEUS) is a kind of laboratory, to explore features and UI before they can get into Open Food Facts.
 
 Main features (you have to install first to see it live):
